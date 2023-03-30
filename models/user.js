@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const bcrypt = require("bcryptjs");
 // creating a schema
 const userSchema = new mongoose.Schema({
   firstName: {
@@ -53,7 +53,10 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-
+userSchema.methods.passwordVerification = async function (candiatePassword, userPassword){
+      // candidate password => password that is provided by the user.
+      return await bcrypt.compare(candiatePassword, userPassword)
+}
 
 // creating a model  
 const User = new mongoose.model("User", userSchema)
