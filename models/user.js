@@ -51,6 +51,16 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
   },
+  verified:{
+    type:Boolean, 
+    default:false
+  }, 
+  otp:{
+    type:String, 
+  }, 
+  otp_expiry_time:{
+    type: Date, 
+  }
 });
 
 userSchema.methods.passwordVerification = async function (candiatePassword, userPassword){
