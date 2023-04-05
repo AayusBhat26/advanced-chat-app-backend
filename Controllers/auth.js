@@ -152,8 +152,10 @@ exports.login = async(async (req, res, next) => {
     token,
   });
 });
+// for protecting the routes
+exports.protect = async (req, res, next)=>{
 
-
+}
 exports.forgotPassword = async (req, res, next)=>{
   // sending a link to user for resetting their password.
 }
