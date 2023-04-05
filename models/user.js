@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 // creating a schema
 const userSchema = new mongoose.Schema({
+  level:{
+    type:String,
+    default:"1"
+  }
+  ,
   firstName: {
     type: String,
     required: [true, "First Name is required"],
@@ -56,19 +61,41 @@ const userSchema = new mongoose.Schema({
     default:false
   }, 
   otp:{
-    type:String, 
+    type:Number, 
   }, 
   otp_expiry_time:{
     type: Date, 
   }
 });
+userSchema.pre("save", async function(next){
+  // todo: make the function call only when the otp is updated or modified.
+
+  if(!this.isModified("otp")) return next(); 
+  
+  // saving otp in encrypted form.
+
+   this.otp = await bcrypt.hash(this.otp, 12);
+
+   next();
+});
+
 
 userSchema.methods.passwordVerification = async function (candiatePassword, userPassword){
       // candidate password => password that is provided by the user.
       return await bcrypt.compare(candiatePassword, userPassword)
 }
 
+userSchema.methods.otpVerification = async function (
+  candidateOtp,
+  userOtp
+) {
+  // candidate password => password that is provided by the user.
+  return await bcrypt.compare(candidateOtp, userOtp);
+};
+
 // creating a model  
 const User = new mongoose.model("User", userSchema)
 
 module.exports = User;
+
+// todo: define a function in pomodoro and todolist schema for increase the level of the user.

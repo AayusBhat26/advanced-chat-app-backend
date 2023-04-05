@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const otpGenerator = require("otp-generator")
+const otpGenerator = require("otp-generator");
 // user model
 const User = require("../models/user.js");
 const filterObj = require("../utils/filterObj.js");
@@ -62,54 +62,67 @@ exports.register = async (req, res, next) => {
   }
 };
 // sending otp functionality
-exports.sendOtp = async(req,res, next)=>{
+exports.sendOtp = async (req, res, next) => {
   const { userId } = req;
   // generating an otp
   const new_otp = otpGenerator.generate(6, {
-    upperCaseAlphabets: true,
+    upperCaseAlphabets: false,
     specialChars: false,
-    lowerCaseAlphabets: true,
+    lowerCaseAlphabets: false,
   });
 
   // otp expiration time.
   const otp_expiry_time = Date.now() + 10 * 60000; // 10 minutes
 
-  // updating and updating the user schema 
+  // updating and updating the user schema
   await User.findByIdAndUpdate(userId, {
     otp: new_otp,
     otp_expiry_time,
   });
-  //todo: sending an email 
+  //todo: sending an email
   return res.status(200, {
-      status:"success", 
-      message:"OTP Sent Successfully"
-  })
-
-}
+    status: "success",
+    message: "OTP Sent Successfully",
+  });
+};
 
 // verifying the otp.
-exports.verifyOtp = async(req,res, next)=>{
-      // todo: verify otp and update the user record
+exports.verifyOtp = async (req, res, next) => {
+  // todo: verify otp and update the user record
 
-      const {email, otp }= req.body;
-      const user = await User.findOne({
-            email, 
-            otp_expiry_time:{
-                  $gt: Date.now()
-            }
-      })  
-      if(!user){ 
-            res.status(400).json({
-                  status:"error", 
-                  message:"Email is invalid or OTP has expired"
-            })
-      }
-      if(otp===user.otp){
-            
-      }
-}
+  const { email, otp } = req.body;
+  const user = await User.findOne({
+    email,
+    otp_expiry_time: {
+      $gt: Date.now(),
+    },
+  });
+  if (!user) {
+    return res.status(400).json({
+      status: "error",
+      message: "Email is invalid or OTP has expired",
+    });
+  }
+  if (!(await user.otpVerification(otp, user.otp))) {
+    return res.status(400).json({
+      status: "error",
+      message: "OTP is incorrect.",
+    });
+  }
+  // otp is correct.
+  user.verified = true;
+  user.otp = undefined;
+  // saving the user.
+  await user.save({ new: true, validateModifiedOnly: true });
 
-
+  
+  const token = signToken(user._id);
+  return res.status(200).jsom({
+    status: "success",
+    message: "OTP verified successfully",
+    token,
+  });
+};
 
 exports.login = async(async (req, res, next) => {
   // login.
@@ -135,7 +148,16 @@ exports.login = async(async (req, res, next) => {
   const token = signToken(user._id);
   return res.status(200).jsom({
     status: "success",
-    message: "Login In process completed successfully",
+    message: "LogIn process completed",
     token,
   });
 });
+
+
+exports.forgotPassword = async (req, res, next)=>{
+  // sending a link to user for resetting their password.
+}
+
+exports.resetPassword = async(req,res, next)=>{
+  
+}
