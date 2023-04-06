@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto")
 // creating a schema
+
 const userSchema = new mongoose.Schema({
   level:{
     type:String,
@@ -36,6 +38,10 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
   },
+  passwordConfirm:{
+    type:String,
+  }
+  ,
   // password changed timestamp.
   passwordChnagedAt: {
     type: Date,
@@ -78,6 +84,19 @@ userSchema.pre("save", async function(next){
 
    next();
 });
+// before saving the password, we need to encrypt the password.
+
+userSchema.pre("save", async function (next) {
+  // todo: make the function call only when the otp is updated or modified.
+
+  if (!this.isModified("password")) return next();
+
+  // saving password in encrypted form.
+
+  this.password = await bcrypt.hash(this.password, 12);
+
+  next();
+});
 
 
 userSchema.methods.passwordVerification = async function (candiatePassword, userPassword){
@@ -92,8 +111,22 @@ userSchema.methods.otpVerification = async function (
   // candidate password => password that is provided by the user.
   return await bcrypt.compare(candidateOtp, userOtp);
 };
+userSchema.methods.createPasswordResetToken = function(){
+  // arrow function does not support this keyword.
+  // todo: store the generated token in user schema and return it from here, once returned from here, using crypto compare them.
+  const resetToken  = crypto.randomBytes(32).toString("hex");
+  this.passwordResetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
-// creating a model  
+  // user will have 10 minutes to reset the password.
+  this.passwordResetExpires = Date.now() + 10 * 60000;  
+  return resetToken;
+}
+// timestamp should be less than passwordchngedat tabhi true aayega
+userSchema.methods.changePasswordAfter = function(timestamps){
+  return timestamps < this.passwordChnagedAt;
+}
+
+// creating a model  x`
 const User = new mongoose.model("User", userSchema)
 
 module.exports = User;
